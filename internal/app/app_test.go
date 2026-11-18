@@ -164,7 +164,7 @@ func newTestApp(timeout time.Duration) *App {
 	return New(config.Config{
 		HTTPAddr:        "127.0.0.1:0",
 		ShutdownTimeout: timeout,
-	}, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	}, slog.New(slog.NewTextHandler(io.Discard, nil)), nil)
 }
 
 func startTestApp(t *testing.T, a *App) (string, context.CancelFunc, <-chan error) {

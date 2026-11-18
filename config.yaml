@@ -1,0 +1,12 @@
+http_addr: ":8080"
+shutdown_timeout: 10s
+log_level: INFO
+migration_timeout: 1m
+
+database:
+  # Development credentials; override DATABASE_URL outside local development.
+  url: "postgres://heretous:heretous@localhost:5432/heretous?sslmode=disable"
+  connect_timeout: 5s
+  max_open_connections: 10
+  max_idle_connections: 5
+  conn_max_lifetime: 30m

@@ -1,28 +1,26 @@
-FROM golang:1.25-bookworm AS development
+FROM golang:1.25-bookworm AS build
 
 WORKDIR /app
 
-COPY go.mod go.sum* ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-FROM development AS test
-
-CMD ["sh", "-c", "go vet ./... && go test -race -count=1 -timeout=60s ./..."]
-
-FROM development AS build
-
 RUN CGO_ENABLED=0 go build -trimpath -o /out/server ./cmd/server
 
-FROM scratch AS runtime
+FROM debian:bookworm-slim AS runtime
 
-COPY --from=development /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
 COPY --from=build /out/server /server
+COPY config.yaml /app/config.yaml
 
 USER 65532:65532
-
-ENV HTTP_ADDR=:8080
 
 EXPOSE 8080
 STOPSIGNAL SIGTERM

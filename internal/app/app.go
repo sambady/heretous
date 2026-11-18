@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -19,11 +20,11 @@ type App struct {
 	shutdownTimeout time.Duration
 }
 
-func New(cfg config.Config, logger *slog.Logger) *App {
+func New(cfg config.Config, logger *slog.Logger, db *sql.DB) *App {
 	return &App{
 		server: &http.Server{
 			Addr:              cfg.HTTPAddr,
-			Handler:           httpapi.NewHandler(),
+			Handler:           httpapi.NewHandler(db),
 			ReadHeaderTimeout: 5 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      15 * time.Second,
