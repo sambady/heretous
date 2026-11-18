@@ -5,6 +5,4 @@
 bin
 .env
 .env.*
-coverage.out
 *.exe
-*.test

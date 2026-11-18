@@ -12,35 +12,19 @@ import (
 )
 
 type Config struct {
-	HTTPAddr         string        `yaml:"http_addr"`
+	HTTPAddr         string        `yaml:"-"`
 	ShutdownTimeout  time.Duration `yaml:"shutdown_timeout"`
-	LogLevel         slog.Level    `yaml:"log_level"`
+	LogLevel         slog.Level    `yaml:"-"`
 	MigrationTimeout time.Duration `yaml:"migration_timeout"`
 	Database         Database      `yaml:"database"`
 }
 
 type Database struct {
-	URL                string        `yaml:"url"`
+	URL                string        `yaml:"-"`
 	ConnectTimeout     time.Duration `yaml:"connect_timeout"`
 	MaxOpenConnections int           `yaml:"max_open_connections"`
 	MaxIdleConnections int           `yaml:"max_idle_connections"`
 	ConnMaxLifetime    time.Duration `yaml:"conn_max_lifetime"`
-}
-
-func Default() Config {
-	return Config{
-		HTTPAddr:         ":8080",
-		ShutdownTimeout:  10 * time.Second,
-		LogLevel:         slog.LevelInfo,
-		MigrationTimeout: time.Minute,
-		Database: Database{
-			URL:                "postgres://heretous:heretous@localhost:5432/heretous?sslmode=disable",
-			ConnectTimeout:     5 * time.Second,
-			MaxOpenConnections: 10,
-			MaxIdleConnections: 5,
-			ConnMaxLifetime:    30 * time.Minute,
-		},
-	}
 }
 
 func Load() (Config, error) {
@@ -51,7 +35,7 @@ func Load() (Config, error) {
 	}
 	defer file.Close()
 
-	cfg := Default()
+	var cfg Config
 	decoder := yaml.NewDecoder(file)
 	decoder.KnownFields(true)
 	if err := decoder.Decode(&cfg); err != nil {
@@ -61,16 +45,9 @@ func Load() (Config, error) {
 	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
 		return Config{}, errors.New("config must contain exactly one YAML document")
 	}
-	cfg.HTTPAddr = envOrDefault("HTTP_ADDR", cfg.HTTPAddr)
-	cfg.Database.URL = envOrDefault("DATABASE_URL", cfg.Database.URL)
-
-	if value := os.Getenv("HTTP_SHUTDOWN_TIMEOUT"); value != "" {
-		timeout, err := time.ParseDuration(value)
-		if err != nil || timeout <= 0 {
-			return Config{}, fmt.Errorf("HTTP_SHUTDOWN_TIMEOUT must be a positive duration, got %q", value)
-		}
-		cfg.ShutdownTimeout = timeout
-	}
+	cfg.HTTPAddr = envOrDefault("HTTP_ADDR", ":8080")
+	cfg.Database.URL = os.Getenv("DATABASE_URL")
+	cfg.LogLevel = slog.LevelInfo
 
 	if value := os.Getenv("LOG_LEVEL"); value != "" {
 		if err := cfg.LogLevel.UnmarshalText([]byte(value)); err != nil {
@@ -86,13 +63,13 @@ func Load() (Config, error) {
 
 func (cfg Config) validate() error {
 	if cfg.HTTPAddr == "" {
-		return errors.New("http_addr must not be empty")
+		return errors.New("HTTP_ADDR must not be empty")
 	}
 	if cfg.ShutdownTimeout <= 0 || cfg.MigrationTimeout <= 0 {
 		return errors.New("shutdown_timeout and migration_timeout must be positive")
 	}
 	if cfg.Database.URL == "" {
-		return errors.New("database.url must not be empty")
+		return errors.New("DATABASE_URL must be set")
 	}
 	if cfg.Database.ConnectTimeout <= 0 || cfg.Database.ConnMaxLifetime <= 0 {
 		return errors.New("database connect_timeout and conn_max_lifetime must be positive")
