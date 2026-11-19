@@ -1,13 +1,14 @@
 services:
   app:
     image: heretous:local
-    pull_policy: never
+    build: .
+    pull_policy: build
     ports:
       - "127.0.0.1:8080:8080"
     environment:
-      DATABASE_URL: "postgres://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}?sslmode=disable"
-      LOG_LEVEL: "${LOG_LEVEL:-}"
-      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-}"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-heretous}:${POSTGRES_PASSWORD:-heretous}@postgres:5432/${POSTGRES_DB:-heretous}?sslmode=disable"
+      LOG_LEVEL: "${LOG_LEVEL:-DEBUG}"
+      SESSION_COOKIE_SECURE: "${SESSION_COOKIE_SECURE:-false}"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
     depends_on:
@@ -24,9 +25,9 @@ services:
   postgres:
     image: postgres:18-bookworm
     environment:
-      POSTGRES_DB: "${POSTGRES_DB:?Set POSTGRES_DB}"
-      POSTGRES_USER: "${POSTGRES_USER:?Set POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB:-heretous}"
+      POSTGRES_USER: "${POSTGRES_USER:-heretous}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-heretous}"
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
