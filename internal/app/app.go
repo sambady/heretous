@@ -24,7 +24,7 @@ func New(cfg config.Config, logger *slog.Logger, db *sql.DB) *App {
 	return &App{
 		server: &http.Server{
 			Addr:              cfg.HTTPAddr,
-			Handler:           httpapi.NewHandler(db),
+			Handler:           httpapi.NewHandler(db, cfg, logger),
 			ReadHeaderTimeout: 5 * time.Second,
 			ReadTimeout:       10 * time.Second,
 			WriteTimeout:      15 * time.Second,
@@ -46,10 +46,6 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("listen on %s: %w", a.server.Addr, err)
 	}
-	return a.serve(ctx, listener)
-}
-
-func (a *App) serve(ctx context.Context, listener net.Listener) error {
 	serveErr := make(chan error, 1)
 	go func() {
 		serveErr <- a.server.Serve(listener)

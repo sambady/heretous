@@ -6,3 +6,5 @@ bin
 .env
 .env.*
 *.exe
+web/node_modules
+web/dist

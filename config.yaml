@@ -1,6 +1,9 @@
 shutdown_timeout: 10s
 migration_timeout: 1m
 
+session:
+  ttl: 720h
+
 database:
   connect_timeout: 5s
   max_open_connections: 10

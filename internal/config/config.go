@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"strconv"
 	"time"
 
 	"go.yaml.in/yaml/v3"
@@ -17,6 +18,13 @@ type Config struct {
 	LogLevel         slog.Level    `yaml:"-"`
 	MigrationTimeout time.Duration `yaml:"migration_timeout"`
 	Database         Database      `yaml:"database"`
+	Session          Session       `yaml:"session"`
+	WebDir           string        `yaml:"-"`
+}
+
+type Session struct {
+	TTL          time.Duration `yaml:"ttl"`
+	CookieSecure bool          `yaml:"-"`
 }
 
 type Database struct {
@@ -48,6 +56,14 @@ func Load() (Config, error) {
 	cfg.HTTPAddr = envOrDefault("HTTP_ADDR", ":8080")
 	cfg.Database.URL = os.Getenv("DATABASE_URL")
 	cfg.LogLevel = slog.LevelInfo
+	cfg.WebDir = envOrDefault("WEB_DIR", "web/dist")
+	if value := os.Getenv("SESSION_COOKIE_SECURE"); value != "" {
+		secure, err := strconv.ParseBool(value)
+		if err != nil {
+			return Config{}, errors.New("SESSION_COOKIE_SECURE must be a boolean")
+		}
+		cfg.Session.CookieSecure = secure
+	}
 
 	if value := os.Getenv("LOG_LEVEL"); value != "" {
 		if err := cfg.LogLevel.UnmarshalText([]byte(value)); err != nil {
@@ -62,8 +78,8 @@ func Load() (Config, error) {
 }
 
 func (cfg Config) validate() error {
-	if cfg.HTTPAddr == "" {
-		return errors.New("HTTP_ADDR must not be empty")
+	if cfg.Session.TTL < time.Second || cfg.Session.TTL%time.Second != 0 {
+		return errors.New("session.ttl must be a positive whole number of seconds")
 	}
 	if cfg.ShutdownTimeout <= 0 || cfg.MigrationTimeout <= 0 {
 		return errors.New("shutdown_timeout and migration_timeout must be positive")
